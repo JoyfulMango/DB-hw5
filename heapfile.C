@@ -59,6 +59,15 @@ const Status createHeapFile(const string fileName)
             return status;
         }
 		
+        status = bufMgr->flushFile(file);
+        if (status != OK)
+        {
+            return status;
+        }
+        status = db.closeFile(file);
+
+        return status;
+        
     }
     return (FILEEXISTS);
 }
@@ -92,8 +101,17 @@ HeapFile::HeapFile(const string & fileName, Status& returnStatus)
             return status;
         }
         headerPage = (FileHdrPage *)pagePtr;
+        hdrDirtyFlag = false;
         
-		
+        curPageNo = headerPage->firstPage;
+        status = bufMgr->readPage(filePtr, curPageNo, curPage);		
+        if (status != OK)
+        {
+            return status;
+        }
+        curDirtyFlag = false;
+        curRec = NULLRID;
+        
     }
     else
     {
@@ -256,7 +274,7 @@ const Status HeapFileScan::scanNext(RID& outRid)
     int 	nextPageNo;
     Record      rec;
 
-    
+    status = curPage->firstRecord(tmpRid);
 	
 	
 	
