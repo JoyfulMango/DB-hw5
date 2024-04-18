@@ -312,8 +312,11 @@ const Status HeapFileScan::scanNext(RID& outRid)
     int 	nextPageNo;
     Record      rec;
 
-    status = curPage->firstRecord(tmpRid);
-	
+    if (curPage != NULL)
+    {
+        
+        status = curPage->firstRecord(tmpRid);
+    }
 	
 	
 	
