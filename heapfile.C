@@ -95,7 +95,7 @@ HeapFile::HeapFile(const string & fileName, Status& returnStatus)
             returnStatus = status;
         }
 		
-        bufMgr->readPage(filePtr, headerPageNo, pagePtr); //readpage handles pinning the page
+        status = bufMgr->readPage(filePtr, headerPageNo, pagePtr); //readpage handles pinning the page
         if (status != OK)
         {
             returnStatus = status;
@@ -111,6 +111,7 @@ HeapFile::HeapFile(const string & fileName, Status& returnStatus)
         }
         curDirtyFlag = false;
         curRec = NULLRID;
+        returnStatus = status;
         
     }
     else
