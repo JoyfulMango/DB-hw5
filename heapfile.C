@@ -34,7 +34,30 @@ const Status createHeapFile(const string fileName)
             return status;
         }
         hdrPage = (FileHdrPage *) newPage;
+        strcpy(hdrPage->fileName, fileName.c_str());
 
+        status = bufMgr->allocPage(file, newPageNo, newPage);
+        if (status != OK)
+        {
+            return status;
+        }
+        newPage->init(newPageNo);
+
+        hdrPage->firstPage = newPageNo;
+        hdrPage->lastPage = newPageNo;
+        hdrPage->pageCnt = 1;
+        hdrPage->recCnt = 0;
+
+        status = bufMgr->unPinPage(file, hdrPageNo, true);
+        if (status != OK)
+        {
+            return status;
+        }
+        status = bufMgr->unPinPage(file, newPageNo, true);
+        if (status != OK)
+        {
+            return status;
+        }
 		
     }
     return (FILEEXISTS);
@@ -57,16 +80,19 @@ HeapFile::HeapFile(const string & fileName, Status& returnStatus)
     // open the file and read in the header page and the first data page
     if ((status = db.openFile(fileName, filePtr)) == OK)
     {
+		status = filePtr->getFirstPage(headerPageNo); //assigns headerPageNo
+        if (status != OK)
+        {
+            return status;
+        }
 		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+        bufMgr->readPage(filePtr, headerPageNo, pagePtr); //readpage handles pinning the page
+        if (status != OK)
+        {
+            return status;
+        }
+        headerPage = (FileHdrPage *)pagePtr;
+        
 		
     }
     else
