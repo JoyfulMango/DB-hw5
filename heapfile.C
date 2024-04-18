@@ -427,18 +427,64 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
         return INVALIDRECLEN;
     }
 
+    if (curPage == NULL)
+    {
+        curPageNo = headerPage->lastPage;
+        status = bufMgr->readPage(filePtr, headerPage->lastPage, curPage);
+        if (status != OK)
+        {
+            return status;
+        }
+    }
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+    status = curPage->insertRecord(rec, rid);
+    if (status == OK)
+    {
+        headerPage->recCnt += 1;
+        hdrDirtyFlag = true;
+        curDirtyFlag = true;
+        outRid = rid;
+        return status;
+    }
+    else if (status == NOSPACE)
+    {
+        status = bufMgr->allocPage(filePtr, newPageNo, newPage);
+        if (status == OK) {
+            newPage = init(newPageNo);
+            newPage->setNextPage(-1);
+
+            int nextPageNum;
+            curPage->getNextPage(temp);
+            curPage->setNextPageNo(newPageNo);
+            newPage->setNextPageNo(nextPageNum);
+
+            if (nextPageNum == -1) {
+                headerPage->lastPage = newPageNo;
+            }
+
+            headerPage->pageCnt += 1;
+            unpinstatus = bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
+            if (unpinstatus == OK)
+            {
+                curPage = newPage;
+                curPageNo = newPageNo;
+                status = curPage->insertRecord(rec, rid);
+                headerPage->recCnt += 1;
+                hdrDirtyFlag = true;
+                curDirtyFlag = true;
+                outRid = rid;
+                return status;
+            }
+            else{
+                return status;
+            }
+        } 
+        else
+        {
+            return status;
+        }
+    }
+    return status;
 }
 
 
