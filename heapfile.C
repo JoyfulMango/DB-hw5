@@ -569,13 +569,13 @@ const Status InsertFileScan::insertRecord(const Record & rec, RID& outRid)
     {
         status = bufMgr->allocPage(filePtr, newPageNo, newPage);
         if (status == OK) {
-            newPage = init(newPageNo);
+            newPage->init(newPageNo);
             newPage->setNextPage(-1);
 
             int nextPageNum;
-            curPage->getNextPage(temp);
-            curPage->setNextPageNo(newPageNo);
-            newPage->setNextPageNo(nextPageNum);
+            curPage->getNextPage(nextPageNum);
+            curPage->setNextPage(newPageNo);
+            newPage->setNextPage(nextPageNum);
 
             if (nextPageNum == -1) {
                 headerPage->lastPage = newPageNo;
