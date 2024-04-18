@@ -311,20 +311,118 @@ const Status HeapFileScan::scanNext(RID& outRid)
     RID		tmpRid;
     int 	nextPageNo;
     Record      rec;
+    bool match = false;
 
-    if (curPage != NULL)
+    if (curPage == NULL)
+    {   
+        curPageNo = headerPage->firstPage;
+        if (curPageNo == -1)
+        {
+            return BADPAGENO;
+        }
+        status = bufMgr->readPage(filePtr, curPageNo, curPage);
+        if (status != OK)
+        {
+            return status;
+        }
+        curDirtyFlag = false;
+        status = curPage->firstRecord(curRec);
+        if (status == OK)
+        {
+            status = curPage->getRecord(curRec, rec);
+            if (status != OK)
+            {
+                return status;
+            }
+
+            if (matchRec(rec))
+            {
+                outRid = curRec;
+                match = true;
+            }
+        }
+        else if (status == NORECORDS)
+        {
+            status = bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
+            if (status != OK)
+            {
+                return status;
+            }
+            curPage = NULL;
+            curPageNo = -1;
+            return ENDOFPAGE;
+        }
+    }
+
+    while (!match)
     {
-        
-        status = curPage->firstRecord(tmpRid);
+        if (curRec == NULLRID){
+            status = curPage->firstRecord(tmpRid);
+            if (status != OK)
+            {
+                return status;
+            }
+        }
+        else
+        {
+            status = curPage->nextRecord(curRec, nextRid);
+            if (status != OK)
+            {
+                while (status != OK)
+                {
+                    curPage->getNextPage(nextPageNo);
+                    if (nextPageNo == -1)
+                    {
+                        return FILEEOF;
+                    }
+                    status = bufMgr->unPinPage(filePtr, curPageNo, curDirtyFlag);
+                    curDirtyFlag = false;
+                    if (status != OK)
+                    {
+                        curPage = NULL;
+                        curPageNo = -1;
+                        return status;
+                    }
+                    curPageNo = nextPageNo;
+                    status = bufMgr->readPage(filePtr, curPageNo, curPage);
+                    if (status != OK)
+                    {
+                        return status;
+                    }
+
+                    status = curPage->firstRecord(curRec);
+
+                }
+            }
+            else if (status == OK)
+            {
+                curRec = nextRid;
+            }
+            else
+            {
+                return status;
+            }
+            
+            status = curPage->getRecord(curRec, rec);
+            if (status != OK)
+            {
+                return status;
+            }
+
+            if (matchRec(rec))
+            {
+                match = true;
+                outRid = curRec;
+            }
+        } 
+    }
+
+    if (match)
+    {
+        return OK;
     }
 	
-	
-	
-	
-	
-	
-	
-	
+    return status;
 }
 
 
